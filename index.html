@@ -76,14 +76,15 @@
   }
   .sparkle {
     position: absolute;
-    bottom: 10px;
     font-size: 18px;
     pointer-events: none;
-    animation: sparkleUp 1.3s ease forwards;
+    animation: sparklePulse 1.3s ease forwards;
   }
-  @keyframes sparkleUp {
-    0% { transform: translateY(0) scale(0.6); opacity: 1; }
-    100% { transform: translateY(-55px) scale(1.1); opacity: 0; }
+  @keyframes sparklePulse {
+    0% { opacity: 0; transform: scale(0.5) translateY(4px); }
+    30% { opacity: 1; transform: scale(1.15) translateY(0); }
+    70% { opacity: 1; transform: scale(1) translateY(-4px); }
+    100% { opacity: 0; transform: scale(0.85) translateY(-12px); }
   }
   .section h2 {
     font-size: 18px;
@@ -511,7 +512,8 @@
       const s = document.createElement("span");
       s.className = "sparkle";
       s.textContent = sparkleEmojis[Math.floor(Math.random() * sparkleEmojis.length)];
-      s.style.left = (10 + Math.random() * 75) + "%";
+      s.style.left = (5 + Math.random() * 85) + "%";
+      s.style.top = (8 + Math.random() * 78) + "%";
       el.appendChild(s);
       setTimeout(() => s.remove(), 1300);
       elapsed += spawnInterval;
