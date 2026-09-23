@@ -233,9 +233,81 @@
     60% { transform: translate(-50%, -50%) scale(1.15); }
     100% { transform: translate(-50%, -50%) scale(1); }
   }
+
+  .loader-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #fdf1f4 0%, #fbe6ec 100%);
+    overflow: hidden;
+    transition: opacity 0.6s ease;
+  }
+  .loader-overlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .loader-star {
+    font-size: 64px;
+    animation: loaderStarPulse 1.4s ease-in-out infinite;
+    filter: drop-shadow(0 0 14px rgba(240, 159, 39, 0.5));
+  }
+  @keyframes loaderStarPulse {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.18) rotate(8deg); }
+  }
+  .loader-title {
+    margin-top: 14px;
+    font-size: 22px;
+    color: #7a4a1f;
+    opacity: 0;
+    animation: loaderFadeIn 0.8s ease forwards 0.2s;
+  }
+  @keyframes loaderFadeIn {
+    to { opacity: 1; }
+  }
+  .loader-stars {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+    font-size: 22px;
+  }
+  .loader-stars span {
+    opacity: 0.25;
+    transform: scale(0.8);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .loader-stars span.lit {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  .loader-sparkle {
+    position: absolute;
+    bottom: -10px;
+    font-size: 16px;
+    opacity: 0;
+    animation: loaderSparkleRise linear forwards;
+  }
+  @keyframes loaderSparkleRise {
+    0% { opacity: 0; transform: translateY(0) scale(0.6); }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-90vh) scale(1.1); }
+  }
 </style>
 </head>
 <body>
+<div class="loader-overlay" id="loaderOverlay">
+  <div class="loader-star">⭐</div>
+  <div class="loader-title">Sophias Sterne</div>
+  <div class="loader-stars" id="loaderStars">
+    <span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span>
+  </div>
+</div>
+
 <div class="app">
   <header>
     <h1>⭐ Sophias Sterne ⭐</h1>
@@ -538,6 +610,33 @@
   checkSectionsDone();
   saveData(data);
   renderAll();
+
+  (function runLoader() {
+    const overlay = document.getElementById("loaderOverlay");
+    const starEls = document.querySelectorAll("#loaderStars span");
+    const LOADER_DURATION = 5000;
+
+    starEls.forEach((s, i) => {
+      setTimeout(() => s.classList.add("lit"), (i + 1) * (LOADER_DURATION / starEls.length));
+    });
+
+    const sparkleEmojis = ["✨", "🌟", "⭐"];
+    const sparkleTimer = setInterval(() => {
+      const s = document.createElement("div");
+      s.className = "loader-sparkle";
+      s.textContent = sparkleEmojis[Math.floor(Math.random() * sparkleEmojis.length)];
+      s.style.left = Math.random() * 100 + "%";
+      s.style.animationDuration = (2 + Math.random() * 1.5) + "s";
+      overlay.appendChild(s);
+      setTimeout(() => s.remove(), 3600);
+    }, 350);
+
+    setTimeout(() => {
+      clearInterval(sparkleTimer);
+      overlay.classList.add("fade-out");
+      setTimeout(() => overlay.remove(), 650);
+    }, LOADER_DURATION);
+  })();
 </script>
 </body>
 </html>
