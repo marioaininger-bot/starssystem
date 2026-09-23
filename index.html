@@ -50,6 +50,39 @@
     border-radius: 18px;
     padding: 14px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    position: relative;
+  }
+  .section h2 .done-badge {
+    font-size: 15px;
+    margin-left: 4px;
+    opacity: 0;
+    display: inline-block;
+  }
+  .section h2 .done-badge.show {
+    opacity: 1;
+  }
+  .section.section-glow { animation: sectionGlow 0.7s ease; }
+  @keyframes sectionGlow {
+    0% { box-shadow: 0 2px 8px rgba(0,0,0,0.06); transform: scale(1); }
+    40% { box-shadow: 0 0 0 5px rgba(240,159,39,0.3), 0 4px 14px rgba(0,0,0,0.08); transform: scale(1.02); }
+    100% { box-shadow: 0 2px 8px rgba(0,0,0,0.06); transform: scale(1); }
+  }
+  .badge-pop { animation: badgePop 0.45s ease; }
+  @keyframes badgePop {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.35); }
+    100% { transform: scale(1); }
+  }
+  .sparkle {
+    position: absolute;
+    bottom: 10px;
+    font-size: 18px;
+    pointer-events: none;
+    animation: sparkleUp 0.9s ease forwards;
+  }
+  @keyframes sparkleUp {
+    0% { transform: translateY(0) scale(0.6); opacity: 1; }
+    100% { transform: translateY(-55px) scale(1.1); opacity: 0; }
   }
   .section h2 {
     font-size: 18px;
@@ -212,18 +245,18 @@
   <div class="celebrate" id="celebrate">🎉 Alle Sterne! 1 Euro fürs Sparschwein! 🐷</div>
 
   <div class="columns">
-    <div class="section">
-      <h2>🌅 Früh</h2>
+    <div class="section" id="section-morning">
+      <h2>🌅 Früh <span class="done-badge" id="badge-morning">✅</span></h2>
       <div id="morning"></div>
     </div>
 
-    <div class="section">
-      <h2>☀️ Nachmittag</h2>
+    <div class="section" id="section-afternoon">
+      <h2>☀️ Nachmittag <span class="done-badge" id="badge-afternoon">✅</span></h2>
       <div id="afternoon"></div>
     </div>
 
-    <div class="section">
-      <h2>🌙 Abend</h2>
+    <div class="section" id="section-evening">
+      <h2>🌙 Abend <span class="done-badge" id="badge-evening">✅</span></h2>
       <div id="evening"></div>
     </div>
   </div>
@@ -297,11 +330,14 @@
   let lastToggledId = null;
 
   if (!data.days[key]) {
-    data.days[key] = { done: {}, rewarded: false };
+    data.days[key] = { done: {}, rewarded: false, sectionDone: { morning: false, afternoon: false, evening: false } };
   }
   saveData(data);
 
   const today = data.days[key];
+  if (!today.sectionDone) {
+    today.sectionDone = { morning: false, afternoon: false, evening: false };
+  }
 
   function countDoneToday() {
     return ALL_TASK_IDS.filter(id => today.done[id]).length;
@@ -325,16 +361,34 @@
         today.done[t.id] = !wasDone;
         const hadReward = today.rewarded;
         checkAllDone();
+        const justCompletedSection = checkSectionsDone();
         saveData(data);
         lastToggledId = t.id;
         renderAll();
         lastToggledId = null;
         if (!hadReward && today.rewarded) {
           triggerBigCelebration();
+        } else if (justCompletedSection) {
+          triggerSectionCelebration(justCompletedSection);
         }
       });
       el.appendChild(row);
     });
+  }
+
+  function checkSectionsDone() {
+    let justCompleted = null;
+    Object.keys(TASKS).forEach(secKey => {
+      const ids = TASKS[secKey].map(t => t.id);
+      const allDone = ids.every(id => today.done[id]);
+      if (allDone && !today.sectionDone[secKey]) {
+        today.sectionDone[secKey] = true;
+        justCompleted = secKey;
+      } else if (!allDone && today.sectionDone[secKey]) {
+        today.sectionDone[secKey] = false;
+      }
+    });
+    return justCompleted;
   }
 
   function checkAllDone() {
@@ -438,6 +492,23 @@
     }, 3200);
   }
 
+  function triggerSectionCelebration(secKey) {
+    const el = document.getElementById("section-" + secKey);
+    if (!el) return;
+    el.classList.add("section-glow");
+    setTimeout(() => el.classList.remove("section-glow"), 700);
+    const sparkleEmojis = ["✨", "⭐", "🎈"];
+    for (let i = 0; i < 6; i++) {
+      const s = document.createElement("span");
+      s.className = "sparkle";
+      s.textContent = sparkleEmojis[Math.floor(Math.random() * sparkleEmojis.length)];
+      s.style.left = (10 + Math.random() * 75) + "%";
+      s.style.animationDelay = (Math.random() * 0.2) + "s";
+      el.appendChild(s);
+      setTimeout(() => s.remove(), 1100);
+    }
+  }
+
   function renderAll() {
     renderStars();
     renderTasks("morning", TASKS.morning);
@@ -445,10 +516,15 @@
     renderTasks("evening", TASKS.evening);
     renderPiggy();
     renderWeek();
+    Object.keys(TASKS).forEach(secKey => {
+      const badge = document.getElementById("badge-" + secKey);
+      if (badge) badge.classList.toggle("show", !!today.sectionDone[secKey]);
+    });
   }
 
   renderDate();
   checkAllDone();
+  checkSectionsDone();
   saveData(data);
   renderAll();
 </script>
