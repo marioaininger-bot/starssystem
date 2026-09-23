@@ -61,10 +61,11 @@
   .section h2 .done-badge.show {
     opacity: 1;
   }
-  .section.section-glow { animation: sectionGlow 0.7s ease; }
+  .section.section-glow { animation: sectionGlow 2s ease; }
   @keyframes sectionGlow {
     0% { box-shadow: 0 2px 8px rgba(0,0,0,0.06); transform: scale(1); }
-    40% { box-shadow: 0 0 0 5px rgba(240,159,39,0.3), 0 4px 14px rgba(0,0,0,0.08); transform: scale(1.02); }
+    25% { box-shadow: 0 0 0 5px rgba(240,159,39,0.3), 0 4px 14px rgba(0,0,0,0.08); transform: scale(1.02); }
+    55% { box-shadow: 0 0 0 3px rgba(240,159,39,0.18), 0 4px 14px rgba(0,0,0,0.08); transform: scale(1.01); }
     100% { box-shadow: 0 2px 8px rgba(0,0,0,0.06); transform: scale(1); }
   }
   .badge-pop { animation: badgePop 0.45s ease; }
@@ -78,7 +79,7 @@
     bottom: 10px;
     font-size: 18px;
     pointer-events: none;
-    animation: sparkleUp 0.9s ease forwards;
+    animation: sparkleUp 1.3s ease forwards;
   }
   @keyframes sparkleUp {
     0% { transform: translateY(0) scale(0.6); opacity: 1; }
@@ -496,17 +497,25 @@
     const el = document.getElementById("section-" + secKey);
     if (!el) return;
     el.classList.add("section-glow");
-    setTimeout(() => el.classList.remove("section-glow"), 700);
+    setTimeout(() => el.classList.remove("section-glow"), 2000);
+
     const sparkleEmojis = ["✨", "⭐", "🎈"];
-    for (let i = 0; i < 6; i++) {
+    const totalDuration = 5000;
+    const spawnInterval = 280;
+    let elapsed = 0;
+    const intervalId = setInterval(() => {
+      if (elapsed >= totalDuration) {
+        clearInterval(intervalId);
+        return;
+      }
       const s = document.createElement("span");
       s.className = "sparkle";
       s.textContent = sparkleEmojis[Math.floor(Math.random() * sparkleEmojis.length)];
       s.style.left = (10 + Math.random() * 75) + "%";
-      s.style.animationDelay = (Math.random() * 0.2) + "s";
       el.appendChild(s);
-      setTimeout(() => s.remove(), 1100);
-    }
+      setTimeout(() => s.remove(), 1300);
+      elapsed += spawnInterval;
+    }, spawnInterval);
   }
 
   function renderAll() {
