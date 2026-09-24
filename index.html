@@ -195,6 +195,136 @@
     color: #7a4a1f;
   }
 
+  .shop {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin-top: 12px;
+  }
+  .shop h2 {
+    font-size: 18px;
+    color: #7a4a1f;
+    margin-bottom: 10px;
+  }
+  .shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+  }
+  .reward {
+    position: relative;
+    background: #fff8ee;
+    border: 2px solid #f0dfc4;
+    border-radius: 14px;
+    padding: 12px;
+    text-align: center;
+  }
+  .reward .emoji { font-size: 30px; }
+  .reward .label { font-size: 15px; color: #4a3a2a; margin: 6px 0 8px; }
+  .reward .cost { font-size: 13px; color: #a9865c; margin-bottom: 8px; }
+  .reward .redeem-count { color: #b5732a; font-weight: bold; }
+  .reward button {
+    width: 100%;
+    border: none;
+    border-radius: 10px;
+    padding: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    background: #e0a53f;
+    color: #fff;
+    cursor: pointer;
+  }
+  .reward button:disabled {
+    background: #e8e0d2;
+    color: #b3a58e;
+    cursor: not-allowed;
+  }
+  .reward-pop { animation: taskPop 0.4s ease; }
+
+  .shop-history {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #f0dfc4;
+  }
+  .shop-history-title {
+    font-size: 13px;
+    color: #a9865c;
+    margin-bottom: 6px;
+    font-weight: bold;
+  }
+  .shop-history-item {
+    font-size: 14px;
+    color: #4a3a2a;
+    padding: 4px 0;
+  }
+  .shop-history-date {
+    color: #a9865c;
+    font-size: 12px;
+  }
+
+  .confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(122, 74, 31, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .confirm-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .confirm-box {
+    background: #fff8ee;
+    border-radius: 20px;
+    padding: 26px 24px;
+    max-width: 300px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    transform: scale(0.85);
+    transition: transform 0.25s ease;
+  }
+  .confirm-overlay.show .confirm-box {
+    transform: scale(1);
+  }
+  .confirm-emoji {
+    font-size: 40px;
+    margin-bottom: 8px;
+  }
+  .confirm-text {
+    font-size: 17px;
+    color: #7a4a1f;
+    margin-bottom: 18px;
+    line-height: 1.4;
+  }
+  .confirm-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .confirm-actions button {
+    flex: 1;
+    border: none;
+    border-radius: 12px;
+    padding: 10px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .confirm-cancel {
+    background: #f0e6d8;
+    color: #7a4a1f;
+  }
+  .confirm-yes {
+    background: #e0a53f;
+    color: #fff;
+  }
+
   .confetti-overlay {
     position: fixed;
     inset: 0;
@@ -351,9 +481,26 @@
       <div class="week-total" id="weekTotal"></div>
     </div>
   </div>
+
+  <div class="shop">
+    <h2>🎁 Belohnungs-Shop</h2>
+    <div class="shop-grid" id="shopGrid"></div>
+    <div class="shop-history" id="shopHistory"></div>
+  </div>
 </div>
 
 <div class="confetti-overlay" id="confettiOverlay"></div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-emoji" id="confirmEmoji">🎁</div>
+    <div class="confirm-text" id="confirmText"></div>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" id="confirmCancel">Abbrechen</button>
+      <button class="confirm-yes" id="confirmYes">Einlösen</button>
+    </div>
+  </div>
+</div>
 
 
 <script>
@@ -378,6 +525,15 @@
     ]
   };
 
+  const REWARDS = [
+    { id: "r1", emoji: "🍦", label: "Eis essen gehen", cost: 3 },
+    { id: "r2", emoji: "🎬", label: "Kino-Abend", cost: 5 },
+    { id: "r3", emoji: "🧩", label: "Kleines Spielzeug", cost: 8 },
+    { id: "r4", emoji: "🎡", label: "Ausflug (Zoo, Freizeitpark...)", cost: 15 },
+    { id: "r5", emoji: "🍫", label: "Süßigkeit aussuchen", cost: 2 },
+    { id: "r6", emoji: "🌙", label: "30 Min. länger aufbleiben", cost: 4 }
+  ];
+
   const ALL_TASK_IDS = [...TASKS.morning, ...TASKS.afternoon, ...TASKS.evening].map(t => t.id);
   const TOTAL_STARS = ALL_TASK_IDS.length;
   const STORAGE_KEY = "sophia_sterne_data_v1";
@@ -386,12 +542,17 @@
     return d.toISOString().slice(0, 10);
   }
 
+  function formatDateShort(dateKey) {
+    const parts = dateKey.split("-");
+    return parts[2] + "." + parts[1] + ".";
+  }
+
   function loadData() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return JSON.parse(raw);
     } catch (e) {}
-    return { days: {}, piggyTotal: 0 };
+    return { days: {}, piggyTotal: 0, redeemed: [] };
   }
 
   function saveData(data) {
@@ -401,8 +562,10 @@
   }
 
   let data = loadData();
+  if (!data.redeemed) data.redeemed = [];
   const key = todayKey();
   let lastToggledId = null;
+  let lastRedeemedId = null;
 
   if (!data.days[key]) {
     data.days[key] = { done: {}, rewarded: false, sectionDone: { morning: false, afternoon: false, evening: false } };
@@ -593,6 +756,115 @@
     }, spawnInterval);
   }
 
+  function getRedeemCount(id) {
+    return data.redeemed.filter(r => r.id === id).length;
+  }
+
+  function showConfirmDialog(emoji, text, onYes) {
+    const overlay = document.getElementById("confirmOverlay");
+    document.getElementById("confirmEmoji").textContent = emoji;
+    document.getElementById("confirmText").textContent = text;
+    overlay.classList.add("show");
+
+    const yesBtn = document.getElementById("confirmYes");
+    const cancelBtn = document.getElementById("confirmCancel");
+
+    function cleanup() {
+      overlay.classList.remove("show");
+      yesBtn.removeEventListener("click", handleYes);
+      cancelBtn.removeEventListener("click", handleCancel);
+      overlay.removeEventListener("click", handleBackdrop);
+    }
+    function handleYes() {
+      cleanup();
+      onYes();
+    }
+    function handleCancel() {
+      cleanup();
+    }
+    function handleBackdrop(e) {
+      if (e.target === overlay) cleanup();
+    }
+    yesBtn.addEventListener("click", handleYes);
+    cancelBtn.addEventListener("click", handleCancel);
+    overlay.addEventListener("click", handleBackdrop);
+  }
+
+  function triggerRewardCelebration(id) {
+    const card = document.querySelector('.reward[data-reward-id="' + id + '"]');
+    if (!card) return;
+    const sparkleEmojis = ["✨", "⭐", "🎉"];
+    for (let i = 0; i < 8; i++) {
+      setTimeout(() => {
+        const s = document.createElement("span");
+        s.className = "sparkle";
+        s.textContent = sparkleEmojis[Math.floor(Math.random() * sparkleEmojis.length)];
+        s.style.left = (10 + Math.random() * 75) + "%";
+        s.style.top = (10 + Math.random() * 65) + "%";
+        card.appendChild(s);
+        setTimeout(() => s.remove(), 1300);
+      }, i * 90);
+    }
+  }
+
+  function redeemReward(id) {
+    const reward = REWARDS.find(r => r.id === id);
+    if (!reward) return;
+    if ((data.piggyTotal || 0) < reward.cost) return;
+    showConfirmDialog(
+      reward.emoji,
+      '"' + reward.label + '" für ' + reward.cost + ' € einlösen?',
+      () => {
+        data.piggyTotal -= reward.cost;
+        data.redeemed.push({ id: reward.id, label: reward.label, cost: reward.cost, date: todayKey() });
+        saveData(data);
+        lastRedeemedId = id;
+        renderAll();
+        lastRedeemedId = null;
+        triggerRewardCelebration(id);
+      }
+    );
+  }
+
+  function renderShop() {
+    const grid = document.getElementById("shopGrid");
+    grid.innerHTML = "";
+    const balance = data.piggyTotal || 0;
+    REWARDS.forEach(r => {
+      const affordable = balance >= r.cost;
+      const count = getRedeemCount(r.id);
+      const card = document.createElement("div");
+      card.className = "reward" + (r.id === lastRedeemedId ? " reward-pop" : "");
+      card.dataset.rewardId = r.id;
+      card.innerHTML =
+        '<div class="emoji">' + r.emoji + '</div>' +
+        '<div class="label">' + r.label + '</div>' +
+        '<div class="cost">' + r.cost + ' €' +
+        (count > 0 ? ' · <span class="redeem-count">schon ' + count + '×</span>' : '') +
+        '</div>' +
+        '<button' + (affordable ? "" : " disabled") + '>Einlösen</button>';
+      card.querySelector("button").addEventListener("click", () => redeemReward(r.id));
+      grid.appendChild(card);
+    });
+  }
+
+  function renderShopHistory() {
+    const el = document.getElementById("shopHistory");
+    if (!data.redeemed.length) {
+      el.innerHTML = "";
+      return;
+    }
+    const recent = data.redeemed.slice(-5).reverse();
+    el.innerHTML =
+      '<div class="shop-history-title">Zuletzt eingelöst</div>' +
+      recent.map(r => {
+        const reward = REWARDS.find(x => x.id === r.id);
+        const emoji = reward ? reward.emoji : "🎁";
+        return '<div class="shop-history-item">' + emoji + ' ' + r.label +
+          ' <span class="shop-history-date">(' + formatDateShort(r.date) + ')</span></div>';
+      }).join("");
+  }
+
   function renderAll() {
     renderStars();
     renderTasks("morning", TASKS.morning);
@@ -600,6 +872,8 @@
     renderTasks("evening", TASKS.evening);
     renderPiggy();
     renderWeek();
+    renderShop();
+    renderShopHistory();
     Object.keys(TASKS).forEach(secKey => {
       const badge = document.getElementById("badge-" + secKey);
       if (badge) badge.classList.toggle("show", !!today.sectionDone[secKey]);
